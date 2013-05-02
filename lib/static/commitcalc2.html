@@ -1,0 +1,210 @@
+<!doctype html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+        <title>Commit Dicount - Discount Calculator</title>
+		<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+		<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+                <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.5/angular.min.js"></script>
+
+		<script>
+
+                    var debug = true;
+                    var maxCommitAmount = 200000.00;
+		    var minCommitAmount = 500.00;
+
+                    function log(msg) {
+				if (debug) console.log(msg);
+			}
+
+		    function numberWithCommas(x) {
+    			return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	            }
+
+                    function calcTieredDiscount(amount, term, prepayFlag, callback) {
+                        var url = "http://162.209.0.95:8100/cd/discount?prepay="+prepayFlag+"&amount="+amount+"&term="+term;
+                        $.ajax({url: url, context: document.body}).done(callback);
+                    }
+
+		    function update() {
+		        var amount = $( "#amountSlider" ).slider( "value" );
+                        log("amount " + amount);
+                        $("#commitAmount").val(amount);
+                        calcTieredDiscount(parseFloat(amount), parseInt($( "#term").val()), $("#prepayFlag").is(':checked'), function(data) {
+                            discount = data.discount;
+                            log("discount  " + discount);
+                            $("#savings").val(discount);
+                            var max_usage = amount; 
+                            $("#maxUsage").val(max_usage);
+                            log("max usage  " + max_usage);
+                            $("#monthlyPayment").val(data.monthlyCharges);
+                            $("#prePayment").val(data.prepayCharges);
+                            log("discount % = " + data.percent);
+                            $("#discountPercent").val(data.percent);
+                        });
+			}
+		</script>
+
+		<script>
+			$(function() {
+                $( "#amountSlider" ).slider({
+                	step: 1,
+                	max: maxCommitAmount,
+                	value: $("#commitAmount").val(),
+                    change: function( event, ui ) {
+                    	update();
+                    },
+                    slide: function( event, ui ) {
+                        //	update();
+                    },
+                });
+
+                $("#term").change(function() { 
+                	var term = $("#term").val();
+                	if (term == 0) {
+                		$("#prepayFlag").attr('checked', false);
+                	}
+					update();
+                });
+
+                $("#commitAmount").change(function() {
+					$( "#amountSlider" ).slider( "value", parseInt($("#commitAmount").val()) );
+                	update();
+                });
+
+                $("#prepayFlag").change(function() { 
+                	var term = $("#term").val();
+                	if (term == 0) {
+                		$(this).attr('checked', false);
+                		alert("You cannot prepay for On Demand");
+                	}
+                	update();
+                });
+
+                $.fn.forceNumeric = function () {
+                    return this.each(function () {
+ 
+                    $(this).keyup(function() {
+                        if (!/^[0-9]+$/.test($(this).val())) {
+                            $(this).val($(this).val().replace(/[^0-9]/g, ''));
+                        }
+                    });
+                    }   );
+                };
+ 
+                $("#commitAmount").forceNumeric();
+        	});
+		</script>
+
+
+		<style>
+
+			body { 
+				background: #EEE;
+				width: 800px;
+                                font-size: 16px;
+                                font-family: "Comic Sans MS", cursive, sans-serif;
+			}
+
+                        input { font-size: 16px; font-family: "Comic Sans MS", cursive, sans-serif; }
+      
+			.pricing {
+				background: #DDD;
+			}
+
+			.tbl {
+				display: table;
+			}
+
+			.tbl-row {
+				display: table-row;
+			}
+
+			.tbl-cell {
+				display: table-cell;
+			}
+
+			#amountSlider {
+				width: 500px;
+				margin: 15px;
+			}
+			#amountSlider .ui-widget-content { background: #ef2929; }
+			#amountSlider .ui-slider-handle { background: #294f19; }
+			.ui-slider-container { }
+		</style>
+	</head>
+
+	<body>
+		<h2>Commit Discount - Savings Calculator</h2>
+
+		<div ng-app>
+			<div>
+				<label>Name:</label>
+				<input type="text" ng-model="customerName" placeholder="customer" value="customer"/>
+				<hr />
+				<label>Term:</label>
+				<select id="term">
+					<option value="0" selected>On Demand</option>
+					<option value="6">6 months</option>
+					<option value="12">12 months</option>
+					<option value="18">18 months</option>
+					<option value="36">36 months</option>
+				</select>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<label>Prepay? </label>
+				<input type="checkbox" id="prepayFlag" /> <span>(for extra 2% in each tier)</span>
+				<br />
+				<br />
+				
+				<div class="ui-slider-container">
+					<div style="float: right;">
+						<div id="amountSlider"></div>
+
+						<div><input type="text" id="commitAmount" /> <span>$</span></div>
+					</div>
+  					<p>Slide to select commitment amount OR</p>
+  					<p>Enter commitment amount</p>
+  					<div style="clear: both;"></div>
+				</div>
+			
+				<!-- input type="text" ng-model="commitAmount" placeholder="Enter Commitment Amount" /-->
+				<hr />
+				<div class="tbl pricing">
+					<div class="tbl-row">
+						<label class="tbl-cell">Hello {{customerName}}, your monthly payment amount</label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="monthlyPayment" />
+						<span>$</span>
+					</div>
+					<div class="tbl-row">
+						<label class="tbl-cell">Hello {{customerName}}, your pre-payment amount</label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="prePayment" />
+						<span>$</span>
+					</div>
+					<div class="tbl-row">
+						<label class="tbl-cell">Congratulations {{customerName}}, you can consume cloud compute charges upto</label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="maxUsage" />
+						<span>$</span>
+					</div>
+					<div class="tbl-row">
+						<label class="tbl-cell">You are saving</label>
+						<input class="tbl-cell" type="text" readonly="readonly" id="savings" />
+						<span>$</span>
+					</div>
+					<div class="tbl-row">
+						<label class="tbl-cell">You are getting a discount of </label>
+						<input class="tbl-cell" type="text" readonly="readonly" id="discountPercent" />
+						<span>%</span>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</body>
+
+	<!-- notes
+	   http://jsfiddle.net/folkenda/wt7b2/
+	-->
+</html>
+

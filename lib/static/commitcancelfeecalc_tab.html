@@ -1,0 +1,314 @@
+<script>
+
+    function log(msg) {
+        if (debug) console.log(msg);
+    }
+
+    function calcTieredDiscount(amount, term, prepayFlag, callback) {
+        var url = "http://162.209.0.95:8100/cd/discount?prepay="+prepayFlag+"&amount="+amount+"&term="+term;
+        log("Sending " + url);
+        $.ajax({url: url, context: document.body}).done(callback);
+    }
+
+    function update() {
+        var amount = $( "#commitAmountForCancel" ).val();
+        log("amount " + amount);
+        calcTieredDiscount(parseFloat(amount), parseInt($( "#termForCancel").val()), $("#prepayFlagForCancel").is(':checked'), function(data) {
+            var discount = data.discount;
+            log("discount  " + discount);
+            $("#discountForCancel").val(discount);
+            log("discount % = " + data.percent);
+            $("#discountPercentForCancel").val(data.percent);
+        });
+    } 
+</script>
+
+<script>
+
+function loadDataTable(tableData) {
+        $("#commitSchedule").html( '<table cellpadding="0" cellspacing="0" border="0" class="display" id="scheduleTable"></table>' );
+
+        $("#scheduleTable").dataTable({
+            "aaData": tableData,
+            "bPaginate": false,
+            "bSort": false,
+            "bFilter": false,
+            "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
+                $(nRow).attr("id",aData[0]);
+                return nRow;
+            },
+            "aoColumns": [
+                { 
+                    "sTitle": "Month #" ,
+                    "sClass": "center" 
+                },
+                { 
+                    "sTitle": "CommitAmount" ,
+                    "sClass": "center" 
+                },
+                { "sTitle": "Amount Availed",
+                    "sClass": "center",
+                    "fnRender": function(obj) {
+                        var sReturn = obj.aData[obj.iDataColumn];
+                        var id = "ROW_" + obj.aData[0] + "_CELL_3";
+                        log("Adding id " + id);
+                        sReturn  = '<input id="' + id + '" type="text" value="' + sReturn + '"/>';
+                        return sReturn;
+                    }
+                },
+                { "sTitle": "Amount Loss",
+                  "sClass": "center",
+                  "fnRender": function(obj) {
+                      var sReturn = obj.aData[obj.iDataColumn];
+                      var id = "ROW_" + obj.aData[0] + "_CELL_4";
+                      log("Adding id " + id);
+                      sReturn  = '<input id="' + id + '" readonly="readonly" value="' + sReturn + '"/>';
+                      return sReturn;
+                  }
+                },
+                { "sTitle": "Discount Received",
+                  "sClass": "center", 
+                  "fnRender": function(obj) {
+                      var sReturn = obj.aData[obj.iDataColumn];
+                      var id = "ROW_" + obj.aData[0] + "_CELL_5";
+                      log("Adding id " + id);
+                      sReturn  = '<input id="' + id + '" readonly="readonly" value="' + sReturn + '"/>';
+                      return sReturn;
+                   }
+                }
+            ]
+        } );
+
+}
+
+function calcCancelFee(amount, term, prepayFlag, months, avails, callback) {
+ 
+    var url = "http://162.209.0.95:8100/cd/cancelfee?prepay="+prepayFlag+"&amount="+amount+"&term="+term+"&months="+months;
+    for (var i = 0; i < avails.length; i++) {
+        url = url + "&avails=" + avails[i];
+    }
+    log("Sending for cancel calc " + url);
+    $.ajax({url: url, context: document.body}).done(callback);
+}
+
+function updateWithNewFee(commitAmount, term, prepayFlag, months, avails) {
+    calcCancelFee(commitAmount, term, prepayFlag, months, avails, function(data) {
+        log(data);
+        $("#totalDisc").val(data.totalDisc);
+	$("#totalLoss").val(data.totalLoss);
+	$("#remCommit").val(data.remCommit);
+	$("#cancelFee").val(data.cancelFee);
+
+        for (var i  = 0; i < data.avails.length; i++) {
+            var n = i + 1;
+            var avail_id  = "#ROW_" + n + "_CELL_3";
+            var loss_id  = "#ROW_" + n + "_CELL_4";
+            var disc_id  = "#ROW_" + n + "_CELL_5";
+	    $(avail_id).val(avails[i]);
+	    $(loss_id).val(commitAmount - data.avails[i]);
+	    $(disc_id).val(data.discounts[i]);
+        }
+
+        for (i = data.avails.length; i < term; i++) {
+            var n = i + 1;
+            var avail_id  = "#ROW_" + n + "_CELL_3";
+            var loss_id  = "#ROW_" + n + "_CELL_4";
+            var disc_id  = "#ROW_" + n + "_CELL_5";
+	    $(avail_id).val(0);
+	    $(loss_id).val(0);
+	    $(disc_id).val(0);
+        }
+    });
+}
+
+$(function() {
+
+    $("#termForCancel").change(function() { 
+        var term = $("#termForCancel").val();
+        if (term == 0) {
+            $("#prepayFlagForCancel").attr('checked', false);
+        }
+        //update();
+    });
+
+    $("#commitAmountForCancel").change(function() {
+        //update();
+    });
+
+    $("#prepayFlagForCancel").change(function() { 
+        var term = $("#termForCancel").val();
+        if (term == 0) {
+            $(this).attr('checked', false);
+            alert("You cannot prepay for On Demand");
+        }
+        //update();
+    });
+
+    $("#calculate").click(function () {
+        update();
+        calcSchedule();
+    });
+
+    $("#update").click(function () {
+        calcSchedule();
+    });
+
+    function calcSchedule() {
+        var term = parseInt($("#termForCancel").val());
+        var commitAmount = $("#commitAmountForCancel").val();
+        var discount = parseFloat($("#discountForCancel").val());
+        var tableData = [];
+        var months = parseInt($("#months").val());
+        var prepayFlag = $("#prepayFlagForCancel").is(':checked');
+        log(term);
+
+
+        for (var i = 0; i < months; i++) {
+            tableData[i] = [i+1,  commitAmount, commitAmount, 0, discount];
+        }
+        for (i = months; i < term; i++) {
+            tableData[i] = [i+1,  commitAmount, 0, 0, 0];
+        }
+        log(tableData);
+
+        loadDataTable(tableData);
+
+        function getAvails() {
+            var a = [];
+            for (var i = 1; i <= months; i++)  {
+                var avail_id  = "#ROW_" + i + "_CELL_3";
+                var amt_avail = $(avail_id).val();
+                a.push(amt_avail);
+            }
+            return a; 
+        }
+
+        function calc(n) {
+            console.log(n);
+            var avail_id  = "#ROW_" + n + "_CELL_3";
+            var loss_id  = "#ROW_" + n + "_CELL_4";
+            var disc_id  = "#ROW_" + n + "_CELL_5";
+            var amt_avail = $(avail_id).val();
+            updateWithNewFee(commitAmount, term, prepayFlag, months, getAvails());
+        }
+
+        var id;
+        for (var i  = 1; i <= term; i++) {
+            id = "#ROW_" + i + "_CELL_3";
+            $(id).change( (function(j) { return function() { calc(j); }  })(i) );
+        }
+        updateWithNewFee(commitAmount, term, prepayFlag, months, getAvails());
+
+    }
+
+    $.fn.forceNumeric = function () {
+        return this.each(function () {
+ 
+            $(this).keyup(function() {
+                if (!/^[0-9]+$/.test($(this).val())) {
+                    $(this).val($(this).val().replace(/[^0-9]/g, ''));
+                }
+            });
+        });
+    };
+ 
+    $("#commitAmountForCancel").forceNumeric();
+
+    $("#months").change (function() {
+                	var ms =  $(this).val();
+                	var nv = 0;
+                	if (!/^[0-9]+$/.test(ms)) {
+                		nv = ms.replace(/[^0-9]/g, '');
+                	} else {
+                		nv = parseInt(ms);
+                	}
+
+                	var m = parseInt(nv);
+
+                	var max = parseInt($("#termForCancel").val());
+
+                	if ( (m < 1) || (m > max)) {
+                		m = 1;
+                	}
+
+                	$(this).val(m);
+    });
+});
+
+</script>
+
+
+		<div>
+		<h2>Commit Discount - Cancellation Fee Calculator</h2>
+			<div>
+				<label>Name:</label>
+				<input type="text" value="customer"/>
+				<hr />
+				<label>Term:</label>
+				<select id="termForCancel">
+					<option value="0" selected>On Demand</option>
+					<option value="6">6 months</option>
+					<option value="12">12 months</option>
+					<option value="18">18 months</option>
+					<option value="36">36 months</option>
+				</select>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<label>Did you Prepay? </label>
+				<input type="checkbox" id="prepayFlagForCancel" />
+				<br />
+
+				<label>Your (monthly) commit amount </label>
+				<span>$</span>
+				<input type="text" id="commitAmountForCancel" />
+				<br />
+			
+				<label>Months completed (including current month) </label>	
+				<input type="text" value="months" id="months" />
+				<br />
+				<br />
+		        
+		        <input type="submit" id="calculate" value="Calculate" />
+				<br />
+				<label>You are currently getting a max. discount of</label>
+				<input type="text" id="discountPercentForCancel" />
+				<span>%</span>
+				OR
+				<span>$ </span>
+				<input type="text" id="discountForCancel" />
+		        <input type="submit" id="update" value="Update" />
+				<br />
+
+				
+				<hr />
+
+				<div class="tbl">
+					<div class="tbl-row">
+						<label class="tbl-cell">Total Discount used </label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="totalDisc" />
+						<span>$</span>
+					</div>
+
+					<div class="tbl-row">
+						<label class="tbl-cell">Total Amount loss </label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="totalLoss" />
+						<span>$</span>	
+					</div>
+
+					<div class="tbl-row">
+						<label class="tbl-cell">Total remaining Commit </label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="remCommit" />
+						<span>$</span>
+					</div>
+
+					<div class="tbl-row">
+						<label class="tbl-cell">Cancel Fee</label>
+						<input class="tbl-cell" type="readonly" readonly="readonly" id="cancelFee" />
+						<span>$</span>	
+					</div>
+				</div>	
+				<hr />
+				
+				<div id="commitSchedule"></div>
+
+			</div>
+		</div>

@@ -1,0 +1,76 @@
+<!doctype html>
+ 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Customer Management</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.5/angular.min.js"></script>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css" />
+  <!-- DataTables -->
+  <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+
+
+  <!--link rel="stylesheet" href="/resources/demos/style.css" /-->
+  <script>
+  $(function() {
+    $( "#tabs" ).tabs();
+  });
+  </script>
+
+  <style>
+
+                        body { 
+                                background: #EEE;
+                                width: 900px;
+                                font-size: 16px;
+                                font-family: "Comic Sans MS", cursive, sans-serif;
+                        }
+
+                        input { font-size: 16px; font-family: "Comic Sans MS", cursive, sans-serif; }
+                        div { font-size: 16px; font-family: "Comic Sans MS", cursive, sans-serif; }
+      
+                        .pricing {
+                                background: #DDD;
+                        }
+
+                        .tbl {
+                                display: table;
+                        }
+
+                        .tbl-row {
+                                display: table-row;
+                        }
+
+                        .tbl-cell {
+                                display: table-cell;
+                        }
+
+                        #amountSlider {
+                                width: 500px;
+                                margin: 15px;
+                        }
+                        #amountSlider .ui-widget-content { background: #ef2929; }
+                        #amountSlider .ui-slider-handle { background: #294f19; }
+                        .ui-slider-container { }
+                </style>
+
+</head>
+<body>
+ 
+<div id="tabs">
+  <ul>
+    <li><a href="/ui/commitcalc_tab.html">Commit Discount Calculator</a></li>
+    <li><a href="/ui/commitcancelfeecalc_tab.html">Commit Cancellation Fee Calculator</a></li>
+    <li><a href="#tabs-3">Misc</a></li>
+  </ul>
+</div>
+ 
+ 
+</body>
+</html>
