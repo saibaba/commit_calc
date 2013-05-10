@@ -3,6 +3,9 @@
                     var debug = true;
                     var maxCommitAmount = 200000.00;
 		    var minCommitAmount = 500.00;
+                    var monthNames  = [ 'Jan' , 'Feb', 'Feb-Leap', 'Mar', 'Apr' , 'May' , 'Jun', 'Jul',
+                            'Aug' , 'Sep', 'Oct' , 'Nov', 'Dec' ];
+
 
                     function log(msg) {
 				if (debug) console.log(msg);
@@ -13,7 +16,8 @@
 	            }
 
                     function calcTieredDiscount(amount, term, prepayFlag, callback) {
-                        var url = "http://162.209.0.95:8100/cd/discount?prepay="+prepayFlag+"&amount="+amount+"&term="+term;
+                        var url = "http://162.209.0.95:8100/cd/discount?prepay="+prepayFlag+"&amount="+amount+"&term="+term+"&smoothing=true";
+                        console.log(url);
                         $.ajax({url: url, context: document.body}).done(callback);
                     }
 
@@ -22,6 +26,7 @@
                         log("amount " + amount);
                         $("#commitAmount").val(amount);
                         calcTieredDiscount(parseFloat(amount), parseInt($( "#term").val()), $("#prepayFlag").is(':checked'), function(data) {
+                        console.log(data);
                             var discount = data.discount;
                             log("discount  " + discount);
                             $("#savings").val(discount);
@@ -32,6 +37,13 @@
                             $("#prePayment").val(data.prepayCharges);
                             log("discount % = " + data.percent);
                             $("#discountPercent").val(data.percent);
+
+                            /* var tbl = '<table class="smoothedPaymentsTable"><thead><tr><th>Month</th><th>Payment</th></tr></thead><tbody>';
+                            for (var i = 0; i < monthNames.length; i++) { tbl += "<tr><td>" + monthNames[i] + "</td><td>" + data.smoothedCharges[monthNames[i]]  + "</td></tr>" ; }
+                            tbl += "</tbody></table>";
+                            console.log(tbl);
+                            $("#smoothedPayments").html(tbl); */
+
                         });
 			}
 		</script>
@@ -67,7 +79,7 @@
                 	var term = $("#term").val();
                 	if (term == 0) {
                 		$(this).attr('checked', false);
-                		alert("You cannot prepay for On Demand");
+                		alert("Prepay option is not allowed for On Demand term");
                 	}
                 	update();
                 });
@@ -85,6 +97,8 @@
  
                 $("#commitAmount").forceNumeric();
         	});
+
+
 		</script>
 
 
@@ -92,9 +106,6 @@
 		<div ng-app>
 		<h2>Commit Discount - Savings Calculator</h2>
 			<div>
-				<label>Name:</label>
-				<input type="text" ng-model="customerName" placeholder="customer" value="customer"/>
-				<hr />
 				<label>Term:</label>
 				<select id="term">
 					<option value="0" selected>On Demand</option>
@@ -122,31 +133,36 @@
 			
 				<!-- input type="text" ng-model="commitAmount" placeholder="Enter Commitment Amount" /-->
 				<hr />
+				<div>
 				<div class="tbl pricing">
 					<div class="tbl-row">
-						<label class="tbl-cell">Hello {{customerName}}, your monthly payment amount</label>
+						<label class="tbl-cell">Monthly payment amount</label>
 						<input class="tbl-cell" type="readonly" readonly="readonly" id="monthlyPayment" />
 						<span>$</span>
 					</div>
 					<div class="tbl-row">
-						<label class="tbl-cell">Hello {{customerName}}, your pre-payment amount</label>
+						<label class="tbl-cell">Pre-payment amount</label>
 						<input class="tbl-cell" type="readonly" readonly="readonly" id="prePayment" />
 						<span>$</span>
 					</div>
 					<div class="tbl-row">
-						<label class="tbl-cell">Congratulations {{customerName}}, you can consume cloud compute charges upto</label>
+						<label class="tbl-cell">Customer can consume cloud compute charges upto</label>
 						<input class="tbl-cell" type="readonly" readonly="readonly" id="maxUsage" />
 						<span>$</span>
 					</div>
 					<div class="tbl-row">
-						<label class="tbl-cell">You are saving</label>
+						<label class="tbl-cell">Savings</label>
 						<input class="tbl-cell" type="text" readonly="readonly" id="savings" />
 						<span>$</span>
 					</div>
 					<div class="tbl-row">
-						<label class="tbl-cell">You are getting a discount of </label>
+						<label class="tbl-cell">Discount </label>
 						<input class="tbl-cell" type="text" readonly="readonly" id="discountPercent" />
 						<span>%</span>
+					</div>
+				</div>
+					<div id="smoothedPayments">
+						
 					</div>
 				</div>
 
